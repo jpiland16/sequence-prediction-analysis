@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # Personal code
 from patterns import get_patterns
-from interface_utils import select_option, confirm
+from interface_utils import select_option_from, confirm
 from sequence_utils import get_sequence_from_pattern
 from nn_parameters import get_parameters
 from stats import get_percent_correct, roundify
@@ -13,8 +13,13 @@ from networks import SimpleRNN_01, RNN_SingleOutput
 ADV_SEES_ENTIRE_DATASET = False # Determines whether training input is allowed
                                 # to preface the testing input
 
-SELECTED_NETWORK = -1 # set this to a non-negative index to suppress
+SELECTED_NETWORK = 1  # set this to a non-negative index to suppress
                       # the prompt and choose the network with that index 
+
+SELECTED_PATTERN = -1 # set this to a non-negative index to suppress
+                      # the prompt and choose the pattern with that index 
+
+USE_DEFAULT_PARAMS = True
 
 # Constants that affect displayed output
 USE_MARKERS = False
@@ -40,19 +45,23 @@ network_list = [
 def main():
     
     params = get_parameters("TRAINING", 
-        default=confirm("Use the default parameters when training " + 
-            "neural networks?")
+        default=USE_DEFAULT_PARAMS or confirm("Use the default parameters " + 
+            "when training the neural network?")
     )
 
     if SELECTED_NETWORK == -1:
         print("\nWhich neural network would you like to use?\n")
-        neural_net = select_option(network_list).nnet(params)
+        neural_net = select_option_from(network_list).nnet(params)
     else:
         neural_net = network_list[SELECTED_NETWORK].nnet(params)
     
-    print("Which pattern would you like to use?\n")
-    pattern = select_option(get_patterns())
+    available_pattterns = get_patterns()
 
+    if SELECTED_PATTERN == -1:
+        print("Which pattern would you like to use?\n")
+        pattern = select_option_from(available_pattterns)
+    else:
+        pattern = available_pattterns[SELECTED_PATTERN]
     print()
 
     # Get a list of bandwidths as determined by the selected pattern

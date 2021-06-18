@@ -168,7 +168,7 @@ class RNN_SingleOutput(nn.Module):
         #Defining the layers ------------------------------
         # RNN Layer
         self.rnn = nn.RNN(self.input_size, self.hidden_layer_size, 
-            self.n_layers, batch_first=True)   
+            self.n_layers, batch_first=True, nonlinearity="relu")   
         # Fully connected layer
         self.fc = nn.Linear(self.hidden_layer_size, self.output_size)
     
@@ -210,7 +210,7 @@ class RNN_SingleOutput(nn.Module):
         # Get necessary parameters
 
         # Define Loss, Optimizer
-        criterion = nn.SmoothL1Loss()
+        criterion = nn.SmoothL1Loss(beta = self.params["BETA"])
         optimizer = torch.optim.Adam(self.parameters(), 
             lr=self.params["LEARNING_RATE"])
 
@@ -220,8 +220,12 @@ class RNN_SingleOutput(nn.Module):
             train_list, seq_len = self.params["SUBSEQ_LEN"], 
             num_bands = self.params["NUM_BANDS"])
 
+        # get_train_set uses 0-based indexing. Let's use 
+        # 1-based indexing instead.
+        training_target_output += 1
+
         # Rescale the targets to be between 0 and 1
-        training_target_output /= self.params["NUM_BANDS"]
+        # training_target_output /= self.params["NUM_BANDS"]
 
         iter = tqdm(range(self.params["NUM_EPOCHS"]))
         for _ in iter:
@@ -238,15 +242,14 @@ class RNN_SingleOutput(nn.Module):
 
     def predict(self, input_list: 'list[int]') -> 'list[int]':
         # Surround input_seq with square brackets because it is a single batch 
-        # Subtract 1 from value to convert to 0-based indexing
         input_seq = Tensor([[one_hot_encode(value - 1, 
             vector_size = self.params["NUM_BANDS"]) for value in input_list]])
         output = self(input_seq)
 
         # Rescale back up by number of bandwidths
-        output *= self.params["NUM_BANDS"]
+        # output *= self.params["NUM_BANDS"]
 
         # Add 1 element-wise to return to 1-based indices
-        output += 1
+        # output += 1
 
         return output.detach().numpy()

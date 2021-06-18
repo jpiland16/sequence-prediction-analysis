@@ -20,9 +20,10 @@ nn_default_params = {
 
         Parameter("NUM_LAYERS", "number of layers in RNN", "int", 2),
         Parameter('HIDDEN_DIM', "dimension of hidden layer in RNN", "int", 20),
-        Parameter('SUBSEQ_LEN', "subsequence length for training", "int", 10),
+        Parameter('SUBSEQ_LEN', "subsequence length for training", "int", 40),
         Parameter('NUM_EPOCHS', "number of training epochs", "int", 100),
-        Parameter('LEARNING_RATE', "learning rate", "float", 0.05)
+        Parameter('LEARNING_RATE', "learning rate", "float", 0.02),
+        Parameter('BETA', 'beta value for smooth l1 loss', 'float', 1)
     ]
 }
 

@@ -22,7 +22,7 @@ def confirm(msg: str) -> bool:
         return True
     return False
 
-def select_option(options: list):
+def select_option_from(options: list):
     for index, option in enumerate(options):
         print(f" {index} - {str(option)}")
     print()
