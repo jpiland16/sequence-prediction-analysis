@@ -1,11 +1,4 @@
-class Pattern():
-    def __init__(self, generator: 'function', name: str) -> None:
-        self.name = name
-        self.generator = generator
-    def __call__(self, *args):
-        return self.generator(*args)
-    def __str__(self):
-        return self.name
+from patterns import Pattern
 
 def get_sequence_from_pattern(pattern: Pattern, num_bands: int, 
         length: int) -> 'list[int]':

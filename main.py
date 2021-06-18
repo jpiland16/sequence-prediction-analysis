@@ -6,24 +6,53 @@ from patterns import get_patterns
 from interface_utils import select_option, confirm
 from sequence_utils import get_sequence_from_pattern
 from nn_parameters import get_parameters
-from stats import get_percent_correct
-from networks import SimpleRNN_01
+from stats import get_percent_correct, roundify
+from networks import SimpleRNN_01, RNN_SingleOutput
 
 # Constants that affect neural network performace
-ADV_SEES_ENTIRE_DATASET = True # Determines whether training input is allowed
+ADV_SEES_ENTIRE_DATASET = False # Determines whether training input is allowed
                                 # to preface the testing input
+
+SELECTED_NETWORK = -1 # set this to a non-negative index to suppress
+                      # the prompt and choose the network with that index 
 
 # Constants that affect displayed output
 USE_MARKERS = False
 
+
+# Collect all the networks available
+class Network():
+    """
+    Wrapper class for a network, so that it is easier for the user to select
+    using the command line.
+    """
+    def __init__(self, nnet, name: str) -> None:
+        self.nnet = nnet
+        self.name = name
+    def __str__(self):
+        return self.name
+
+network_list = [
+    Network(SimpleRNN_01, "Simple RNN with one-hot vector output"), # 0
+    Network(RNN_SingleOutput, "RNN that outputs a single value")    # 1
+]
+
 def main():
-    print("Which pattern would you like to use?\n")
-    pattern = select_option(get_patterns())
     
     params = get_parameters("TRAINING", 
-        default=confirm("\nDo you want to use the default parameters?")
+        default=confirm("Use the default parameters when training " + 
+            "neural networks?")
     )
+
+    if SELECTED_NETWORK == -1:
+        print("\nWhich neural network would you like to use?\n")
+        neural_net = select_option(network_list).nnet(params)
+    else:
+        neural_net = network_list[SELECTED_NETWORK].nnet(params)
     
+    print("Which pattern would you like to use?\n")
+    pattern = select_option(get_patterns())
+
     print()
 
     # Get a list of bandwidths as determined by the selected pattern
@@ -34,7 +63,6 @@ def main():
     train_data = entire_transmission[:params["TRAIN_LENGTH"]]
     test_data = entire_transmission[params["TRAIN_LENGTH"]:]
 
-    neural_net = SimpleRNN_01(params)
     neural_net.train(train_data)
 
     # Don't make a prediction for the last value in test_data
@@ -45,7 +73,8 @@ def main():
         output = output[params["TRAIN_LENGTH"]:]
 
     # Compare the predictions to the test data advanced by one timestep
-    accuracy = get_percent_correct(test_data[1:], output)
+    accuracy = get_percent_correct(test_data[1:], 
+        roundify(output, min_v = 1, max_v = params["NUM_BANDS"] ))
     
     # print(f"Accuracy on testing set: {round(accuracy * 100, 2)}%")
 

@@ -15,3 +15,10 @@ def get_percent_correct(list_1: 'list[int]', list_2: 'list[int]') -> float:
             correct += 1
     
     return correct / total
+
+def roundify(my_list: 'list[int]', min_v: int, max_v: int) -> 'list[int]':
+    """
+    Rounds each value in the list, keeping it between 
+    the specified min and max.
+    """
+    return [ max( min_v, min( round(v), max_v ) ) for v in my_list ]
