@@ -21,7 +21,7 @@ def get_train_set(train_data: list, seq_len: int,
            (there should be a one-hot vector here)
     """
 
-    train_x = []
+    train_x = [] # a set of little sequences
     train_y = []
     
     # Subtract 1 here to accomodate for predictions
@@ -31,7 +31,7 @@ def get_train_set(train_data: list, seq_len: int,
         # Also note: we are subtracting 1 from the values because
         # the presentation used 1-based indices rather than 0-based
         train_x.append([one_hot_encode(value - 1, vector_size = num_bands) 
-            for value in train_data[i : i + seq_len]])
+            for value in train_data[i : i + seq_len]]) # a little sequence
         train_y.append([value - 1 
             for value in train_data[i + 1 : i + seq_len + 1]])
 
@@ -72,17 +72,20 @@ class SimpleRNN_01(nn.Module):
         
         input_size = input_data.size(0)
 
-        # Initializing hidden state for first input using method defined below
-        hidden_state = self.init_hidden(input_size)
-
         # Passing in the input and hidden state into the model and 
         # obtaining outputs
-        output, hidden_state = self.rnn(input_data, hidden_state)
+        # print("\nBefore RNN", input_data.size())
+
+        output, _ = self.rnn(input_data)
+
+        # print("After RNN, before linear", output.size())
         
         # Reshaping the outputs such that it can be fit into the 
         # fully connected layer
         output = output.contiguous().view(-1, self.hidden_layer_size)
+        # print("After reshape, before linear", output.size())    
         output = self.fc(output)
+        # print("After linear", output.size())    
         return output
     
     def init_hidden(self, batch_size):
@@ -112,6 +115,7 @@ class SimpleRNN_01(nn.Module):
         training_input, training_target_output = get_train_set(
             train_list, seq_len = self.params["SUBSEQ_LEN"], 
             num_bands = self.params["NUM_BANDS"])
+    
 
         iter = tqdm(range(self.params["NUM_EPOCHS"]))
         for _ in iter:
@@ -133,23 +137,17 @@ class SimpleRNN_01(nn.Module):
             vector_size = self.params["NUM_BANDS"]) for value in input_list]])
         output = self(input_seq)
 
-        # Calculate the probabilities at each timestep
-        probs_at_each_timestep = \
-            [nn.functional.softmax(output[i], dim=0).data for i in range(0,
-                len(output) )]
-
         # Select the index of maximum probability
         # Add 1 to value due to 1-based indexing
         return [torch.max(probs, dim=0)[1].item() + 1
-            for probs in probs_at_each_timestep ]
+            for probs in output ]
 
 
 class RNN_SingleOutput(nn.Module):
     """
     A simple recurrent neural network plus 1 hidden layer.
-    Outputs a single value in the range (0, 1).
-    TODO: switch to using ReLU and avoid rescaling.
-    TODO: Use Huber Loss (?)
+    Outputs a single value in the range (0, +infinity).
+    Is clamped at both ends and rounded before accuracy is tested.
     """
     def __init__(self, params: dict):
         """
@@ -165,7 +163,7 @@ class RNN_SingleOutput(nn.Module):
         self.output_size = 1
         self.params = params
 
-        #Defining the layers ------------------------------
+        # Defining the layers ------------------------------
         # RNN Layer
         self.rnn = nn.RNN(self.input_size, self.hidden_layer_size, 
             self.n_layers, batch_first=True, nonlinearity="relu")   

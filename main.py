@@ -13,7 +13,7 @@ from networks import SimpleRNN_01, RNN_SingleOutput
 ADV_SEES_ENTIRE_DATASET = False # Determines whether training input is allowed
                                 # to preface the testing input
 
-SELECTED_NETWORK = 1  # set this to a non-negative index to suppress
+SELECTED_NETWORK = 0  # set this to a non-negative index to suppress
                       # the prompt and choose the network with that index 
 
 SELECTED_PATTERN = -1 # set this to a non-negative index to suppress
@@ -80,6 +80,7 @@ def main():
 
     if ADV_SEES_ENTIRE_DATASET:
         output = output[params["TRAIN_LENGTH"]:]
+
 
     # Compare the predictions to the test data advanced by one timestep
     accuracy = get_percent_correct(test_data[1:], 

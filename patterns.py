@@ -54,3 +54,19 @@ def get_patterns() -> 'list[Pattern]':
     """
     return [Pattern(var, var_name) for var_name, var in globals().items() 
         if type(var).__name__ == "function" and var.__name__ == "<lambda>"]
+
+# Pattern that includes other patterns
+class MetaPattern():
+    def __init__(self):
+        self.SW_PROB = 0.05 # switch pattern with probability P
+        self.pattern_list = get_patterns()
+        self.current_pattern_index = r.randint(0, len(self.pattern_list) - 1)
+    def __call__(self, t: int, N: int) -> int:
+        if r.random() < self.SW_PROB:
+            self.current_pattern_index = r.randint(0, 
+                len(self.pattern_list) - 1)
+        return self.pattern_list[self.current_pattern_index](t, N)
+
+meta_switch_func = MetaPattern()
+meta_switch = lambda t, N: meta_switch_func(t, N)
+
