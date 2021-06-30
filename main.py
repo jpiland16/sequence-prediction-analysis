@@ -7,13 +7,13 @@ from interface_utils import select_option_from, confirm
 from sequence_utils import get_sequence_from_pattern
 from nn_parameters import get_parameters
 from stats import get_percent_correct, roundify
-from networks import SimpleRNN_01, RNN_SingleOutput
+from networks import SimpleRNN_01, RNN_SingleOutput, SimpleLSTM_01
 
 # Constants that affect neural network performace
 ADV_SEES_ENTIRE_DATASET = False # Determines whether training input is allowed
                                 # to preface the testing input
 
-SELECTED_NETWORK = 0  # set this to a non-negative index to suppress
+SELECTED_NETWORK = -1 # set this to a non-negative index to suppress
                       # the prompt and choose the network with that index 
 
 SELECTED_PATTERN = -1 # set this to a non-negative index to suppress
@@ -21,7 +21,7 @@ SELECTED_PATTERN = -1 # set this to a non-negative index to suppress
 
 USE_DEFAULT_PARAMS = True
 
-# Constants that affect displayed output
+# Constants that affect displayed output (i.e. the look of the graphs)
 USE_MARKERS = False
 
 
@@ -39,7 +39,8 @@ class Network():
 
 network_list = [
     Network(SimpleRNN_01, "Simple RNN with one-hot vector output"), # 0
-    Network(RNN_SingleOutput, "RNN that outputs a single value")    # 1
+    Network(RNN_SingleOutput, "RNN that outputs a single value"),   # 1
+    Network(SimpleLSTM_01, "Simple LSTM with one-hot output")       # 2
 ]
 
 def main():
