@@ -1,3 +1,6 @@
+# Python libraries
+import copy
+
 # Third-party libraries
 import matplotlib.pyplot as plt
 
@@ -20,17 +23,30 @@ SELECTED_NETWORK = -1 # set this to a non-negative index to suppress
 SELECTED_PATTERN = -1 # set this to a non-negative index to suppress
                       # the prompt and choose the pattern with that index 
 
-FORECAST_LOOKBACK = -1 # set this to a non-negative index to force the network
-                       # to make new predictions at each timestep based on the 
-                       # last FORECAST_LOOKBACK timesteps, if data is available.
-                       # If negative, network will run a single time, using all
-                       # the available information.
-
 USE_DEFAULT_PARAMS = True
 
 # Constants that affect displayed output (i.e. the look of the graphs)
+
 USE_MARKERS = False
 
+class SimulationResults:
+    def __init__(self, params, input, output, accuracy, name: str = "",
+            description: str = ""):
+        """
+        Holds all the results of a simulation. 
+        `params` is the parameters used for network training and testing.
+        `input` is the sequence used in testing.
+        `output` is the neural network's predictions of the next integer
+        at each timestep. (The target would be the input shifted back by 
+        one timestep.) Parameters are deep-copied to avoid source changes 
+        affecting the stored parameters.
+        """
+        self.params = copy.deepcopy(params) # because the source is changing
+        self.input = input
+        self.output = output
+        self.accuracy = accuracy
+        self.name = name
+        self.description = description
 
 # Collect all the networks available
 class Network():
@@ -72,6 +88,13 @@ def main():
         pattern = available_pattterns[SELECTED_PATTERN]
     print()
 
+    sim = train_and_test(neural_net, pattern, params)   
+    
+    # print(f"Accuracy on testing set: {round(accuracy * 100, 2)}%")
+    show_attack_success_graph(pattern, params, sim.input, 
+        sim.output, sim.accuracy)
+
+def train_and_test(neural_net, pattern, params, show_stats = True):
     # Get a list of bandwidths as determined by the selected pattern
     entire_transmission = get_sequence_from_pattern(pattern, 
         num_bands = params["NUM_BANDS"], 
@@ -80,19 +103,21 @@ def main():
     train_data = entire_transmission[:params["TRAIN_LENGTH"]]
     test_data = entire_transmission[params["TRAIN_LENGTH"]:]
 
-    neural_net.train(train_data)
+    neural_net.train(train_data, show_stats = show_stats)
 
     # Don't make a prediction for the last value in test_data (hence the -1)
     prediction_input = test_data[:-1] if not ADV_SEES_ENTIRE_DATASET \
         else (train_data + test_data)[:-1]
 
-    if FORECAST_LOOKBACK >= 0:
+    forecast_lookback = params["FORECAST_LOOKBACK"]
+
+    if forecast_lookback >= 0:
         # Only look at the last FORECAST_LOOKBACK timesteps for information
         output = [
 
             neural_net.predict(prediction_input[
                 # We can't take information from timesteps before 0 (hence max)
-                max(0, i - FORECAST_LOOKBACK) : i + 1
+                max(0, i - forecast_lookback) : i + 1
             ])[-1] # Take the last prediction, ignore any intermediate
                    # predictions (hence the -1)
 
@@ -108,16 +133,13 @@ def main():
     if ADV_SEES_ENTIRE_DATASET:
         output = output[params["TRAIN_LENGTH"]:]
 
-
     # Compare the predictions to the test data advanced by one timestep
     accuracy = get_percent_correct(test_data[1:], 
         roundify(output, min_v = 1, max_v = params["NUM_BANDS"] ))
-    
-    # print(f"Accuracy on testing set: {round(accuracy * 100, 2)}%")
-    show_attack_success_graph(pattern, params, output, test_data, accuracy)
 
+    return SimulationResults(params, test_data, output, accuracy)
 
-def show_attack_success_graph(pattern, params, output, test_data, accuracy):
+def show_attack_success_graph(pattern, params, test_data, output, accuracy):
     # Plot the results
     timesteps = [t + 1 for t in range(params["TRAIN_LENGTH"], 
         params["TRAIN_LENGTH"] + params["TEST_LENGTH"] - 1)]

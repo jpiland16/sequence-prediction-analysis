@@ -23,6 +23,8 @@ nn_default_params = {
         Parameter('SUBSEQ_LEN', "subsequence length for training", "int", 40),
         Parameter('NUM_EPOCHS', "number of training epochs", "int", 100),
         Parameter('LEARNING_RATE', "learning rate", "float", 0.02),
+        Parameter('FORECAST_LOOKBACK', 'number of previous timesteps used ' + 
+            'in predictions (-1 for no limit)', "int", -1),
         Parameter('BETA', 'beta value for smooth l1 loss', 'float', 1)
     ]
 }

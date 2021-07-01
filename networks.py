@@ -80,12 +80,7 @@ class SimpleRNN_01(nn.Module):
         output = self.fc(output)
         return output
 
-    def train(self, train_list: 'list[int]'):
-        """
-        Trains `SimpleRNN_01` from `NeuralNetworks.py` on a 
-        newly generated sequence of integers
-        """
-        # Get necessary parameters
+    def train(self, train_list: 'list[int]', show_stats: bool):
 
         # Define Loss, Optimizer
         criterion = nn.CrossEntropyLoss()
@@ -99,7 +94,9 @@ class SimpleRNN_01(nn.Module):
             num_bands = self.params["NUM_BANDS"])
     
 
-        iter = tqdm(range(self.params["NUM_EPOCHS"]))
+        iter = range(self.params["NUM_EPOCHS"])
+        if show_stats:
+            iter = tqdm(iter)
         for _ in iter:
             optimizer.zero_grad() # Clears existing gradients from previous epoch
             output = self(training_input)
@@ -108,9 +105,11 @@ class SimpleRNN_01(nn.Module):
             loss.backward() # Does backpropagation and calculates gradients
             optimizer.step() # Updates the weights accordingly
 
-            iter.set_description(f"loss: {round(loss.item(), 3):5}")
+            if show_stats:
+                iter.set_description(f"loss: {round(loss.item(), 3):5}")
 
-        print("\nDone training!\n")
+        if show_stats:
+            print("\nDone training!\n")
 
     def predict(self, input_list: 'list[int]') -> 'list[int]':
         # Surround input_seq with square brackets because it is a single batch 
@@ -167,12 +166,7 @@ class RNN_SingleOutput(nn.Module):
         output = self.fc(output)
         return output.view(-1)
 
-    def train(self, train_list: 'list[int]'):
-        """
-        Trains `SimpleRNN_01` from `NeuralNetworks.py` on a 
-        newly generated sequence of integers
-        """
-        # Get necessary parameters
+    def train(self, train_list: 'list[int]', show_stats: bool):
 
         # Define Loss, Optimizer
         criterion = nn.SmoothL1Loss(beta = self.params["BETA"])
@@ -192,7 +186,9 @@ class RNN_SingleOutput(nn.Module):
         # Rescale the targets to be between 0 and 1
         # training_target_output /= self.params["NUM_BANDS"]
 
-        iter = tqdm(range(self.params["NUM_EPOCHS"]))
+        iter = range(self.params["NUM_EPOCHS"])
+        if show_stats:
+            iter = tqdm(iter)
         for _ in iter:
             optimizer.zero_grad() # Clears existing gradients from previous epoch
             output = self(training_input)
@@ -201,9 +197,11 @@ class RNN_SingleOutput(nn.Module):
             loss.backward() # Does backpropagation and calculates gradients
             optimizer.step() # Updates the weights accordingly
 
-            iter.set_description(f"loss: {round(loss.item(), 3):5}")
+            if show_stats:
+                iter.set_description(f"loss: {round(loss.item(), 3):5}")
 
-        print("\nDone training!\n")
+        if show_stats:
+            print("\nDone training!\n")
 
     def predict(self, input_list: 'list[int]') -> 'list[int]':
         # Surround input_seq with square brackets because it is a single batch 
@@ -258,12 +256,7 @@ class SimpleLSTM_01(nn.Module):
         output = self.fc(output)
         return output
 
-    def train(self, train_list: 'list[int]'):
-        """
-        Trains `SimpleRNN_01` from `NeuralNetworks.py` on a 
-        newly generated sequence of integers
-        """
-        # Get necessary parameters
+    def train(self, train_list: 'list[int]', show_stats: bool):
 
         # Define Loss, Optimizer
         criterion = nn.CrossEntropyLoss()
@@ -277,7 +270,9 @@ class SimpleLSTM_01(nn.Module):
             num_bands = self.params["NUM_BANDS"])
     
 
-        iter = tqdm(range(self.params["NUM_EPOCHS"]))
+        iter = range(self.params["NUM_EPOCHS"])
+        if show_stats:
+            iter = tqdm(iter)
         for _ in iter:
             optimizer.zero_grad() # Clears existing gradients from previous epoch
             output = self(training_input)
@@ -286,9 +281,11 @@ class SimpleLSTM_01(nn.Module):
             loss.backward() # Does backpropagation and calculates gradients
             optimizer.step() # Updates the weights accordingly
 
-            iter.set_description(f"loss: {round(loss.item(), 3):5}")
+            if show_stats:
+                iter.set_description(f"loss: {round(loss.item(), 3):5}")
 
-        print("\nDone training!\n")
+        if show_stats:
+            print("\nDone training!\n")
 
     def predict(self, input_list: 'list[int]') -> 'list[int]':
         # Surround input_seq with square brackets because it is a single batch 
