@@ -1,15 +1,22 @@
-import math
+# Python library imports
+import math, os, pickle
+import matplotlib.pyplot as plt
+from datetime import datetime
 
+# Personal code
 from nn_parameters import get_parameters
 from main import train_and_test
 
+# Choose the network
 from networks import SimpleRNN_01, SimpleLSTM_01, RNN_SingleOutput
 NETWORK_TO_TEST = SimpleRNN_01
 
+# Choose the pattern
 from patterns import meta_switch
 PATTERN_TO_TEST = meta_switch
 
 SHOW_STATUS = True
+OUTPUT_DIR_NAME = "output"
 
 class ChangingParameter:
     """
@@ -145,6 +152,7 @@ class Test:
                             name = run_name_prefix 
                                 + f"{variation.stepper_name}_" 
                                 + f"{stepper_value}",
+                            graph_title = run_name_prefix,
                             description = long_description + 
                                 f"VARYING SCHEME #{depth} ----\n" 
                                 + variation.full_description    
@@ -180,25 +188,55 @@ class Test:
 
         return results
         
-def run_test(params, name, description):
+def run_test(params, name, graph_title, description):
     neural_net = NETWORK_TO_TEST(params)
     sim_res = train_and_test(neural_net, PATTERN_TO_TEST, params, 
         show_stats = False)
     sim_res.name = name
     sim_res.description = description
+    sim_res.graph_title = graph_title
     return sim_res
 
-def save_output(results, x_axis_name: str):
-    pass
+def save_output_graphs(results, x_axis_name: str, agg_group_function: callable, 
+        target_dir: str):
+    """
+    Saves a single image of a graph if `results` is a `list` of `dict`s.
+    Otherwise, recursively calls itself to create several images.
+
+    `agg_group_function` should take as input a list of `SimulationResult`s 
+    and return some aggregate statistic (such as max, average, etc.)
+    """
+    if type(results[0]) == dict:
+
+        x_axis_set = [results[i]["step_value"] for i in range(len(results))]
+
+        accuracy_set = [agg_group_function(results[i]["group"])
+            for i in range(len(results))]
+
+        # Take the first simulation of several repeats
+        # in the group of repeated simulations
+        # in the first step value of the results
+        graph_title = results[0]["group"][0].graph_title
+
+        plt.clf()
+        plt.plot(x_axis_set, accuracy_set)
+        plt.title(f"accuracy vs {x_axis_name}")
+        plt.savefig(os.path.join(target_dir, graph_title + ".png"))
+
+    else: 
+        for result_set in results:
+            save_output_graphs(result_set, x_axis_name, agg_group_function, 
+                target_dir)
 
 def main():
     demo_test_01()
+    print()
 
 def demo_test_01():
     test = Test([
         ParameterVariationScheme(
             min = 5,
-            max = 6,
+            max = 20,
             step_size = 1,
             changing_parameters = [
                 ChangingParameter("NUM_BANDS")
@@ -208,7 +246,7 @@ def demo_test_01():
         ), 
         ParameterVariationScheme(
             min = 20,
-            max = 21,
+            max = 40,
             step_size = 1,
             changing_parameters = [
                 ChangingParameter("HIDDEN_DIM")
@@ -218,10 +256,27 @@ def demo_test_01():
         )
     ])
 
-    test_results = test.run(num_sim_repeats = 2)
+    agg_func = lambda sim_list: \
+        sum([sim.accuracy for sim in sim_list]) / len(sim_list)
 
-    return test_results
+    test_results = test.run(num_sim_repeats = 25)
 
+    save_dir = get_save_dir()
+
+    save_output_graphs(test_results["results"], test_results["x-axis-name"], 
+        agg_func, save_dir)
+
+    # Also save all the results in a pickle for future reference
+    with open(os.path.join(save_dir, "all-data.pickle"), 'wb') as file:
+        pickle.dump(test_results, file)
+
+def get_save_dir():
+    if not os.path.exists(OUTPUT_DIR_NAME):
+        os.mkdir(OUTPUT_DIR_NAME)
+    sub_dir_name = "Tests {:%Y.%m.%d %H-%M-%S}".format(datetime.now())
+    os.mkdir(os.path.join(OUTPUT_DIR_NAME, sub_dir_name))
+    return os.path.join(OUTPUT_DIR_NAME, sub_dir_name)
+    
 if __name__ == "__main__":
     try:
         main()

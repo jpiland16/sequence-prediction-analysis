@@ -47,7 +47,14 @@ class SimulationResults:
         self.accuracy = accuracy
         self.name = name
         self.description = description
+        self.graph_title = ""
 
+    def __str__(self):
+        return f"<SimulationResults for {self.name}>"
+    
+    def __repr__(self):
+        return str(self)
+    
 # Collect all the networks available
 class Network():
     """

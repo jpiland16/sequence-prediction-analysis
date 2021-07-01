@@ -41,11 +41,11 @@ auto_regressor_func = AutoRegressive()
 random = lambda t, N: r.randint(1, N)
 mod_with_noise = lambda t, N: (t % N) + 1 + ((
         (r.randint(0, 1) * 2) - 1 # returns -1 or 1
-    ) if t % N == 2 else 0)
+    ) if t % N == N // 2 else 0)
 random_spike = lambda t, N: r.randint(1, N) if t % 10 == 0 else 1
 auto_regressive = lambda t, N: auto_regressor_func(t, N)
 sawtooth = lambda t, N: t % N + 1
-pulse = lambda t, N: 5 if t % N <= 2 else 1
+pulse = lambda t, N: N if t % N <= N // 2 else 1
 
 def get_patterns() -> 'list[Pattern]':
     """
