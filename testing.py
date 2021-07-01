@@ -6,17 +6,22 @@ from datetime import datetime
 # Personal code
 from nn_parameters import get_parameters
 from main import train_and_test
+from html_output import save_html
 
 # Choose the network
 from networks import SimpleRNN_01, SimpleLSTM_01, RNN_SingleOutput
 NETWORK_TO_TEST = SimpleRNN_01
 
 # Choose the pattern
-from patterns import meta_switch
-PATTERN_TO_TEST = meta_switch
+from patterns import auto_regressive
+PATTERN_TO_TEST = auto_regressive
 
 SHOW_STATUS = True
 OUTPUT_DIR_NAME = "output"
+
+AVG_AGG = lambda sim_list: \
+            sum([sim.accuracy for sim in sim_list]) / len(sim_list)
+MAX_AGG = lambda sim_list: max([sim.accuracy for sim in sim_list])
 
 class ChangingParameter:
     """
@@ -82,6 +87,39 @@ class Test:
         """
         Initiate the test simulations. `num_sim_repeats` is the number of
         times to repeat a simulation, using the same parameter set.
+
+        For example, if there are three parameter variations, this method
+        returns a dict that looks like the following:
+
+        {
+            step_name: name of P1
+            data_set: [
+                {
+                    step_value:
+                    data_point: {
+                        step_name: name of P2
+                        data_set: [
+                            {
+                                step_value:
+                                data_point: {
+                                        step_name: name of P3
+                                        data_set: [
+                                            {
+                                                step_value:
+                                                data_point: [ list of 
+                                                SimulationResults ]
+                                            }
+                                            ...
+                                        ]
+                                }
+                            }
+                            ...
+                        ]
+                    }
+                }
+                ...
+            ]
+        }
         """
         # Get the default parameters as specified in nn_parameters.py
         simulation_params = get_parameters("TRAINING")
@@ -89,14 +127,7 @@ class Test:
         result_set = self.run_internal(num_sim_repeats, "", 
             self.parameter_variations, simulation_params, "")
 
-        # last_varied_step_name is the name of value that will be graphed 
-        # on the x-axis.
-        last_varied_step_name = self.parameter_variations[-1].stepper_name
-
-        return {
-            "results": result_set,
-            "x-axis-name": last_varied_step_name
-        }
+        return result_set
 
     def run_internal(self, num_sim_repeats: int, run_name_prefix: str,
             parameter_variations: 'list[ParameterVariationScheme]',
@@ -120,7 +151,7 @@ class Test:
             if (SHOW_STATUS): 
                 print()
                 print("-- " * (depth - 1) + 
-                    f"Running:   step {run_count + 1} of {num_steps} " + 
+                    f"Running step {run_count + 1} of {num_steps} " + 
                     f"for scheme level {depth}", end="")
 
             # Change each specified parameter in accordance with its step
@@ -152,7 +183,6 @@ class Test:
                             name = run_name_prefix 
                                 + f"{variation.stepper_name}_" 
                                 + f"{stepper_value}",
-                            graph_title = run_name_prefix,
                             description = long_description + 
                                 f"VARYING SCHEME #{depth} ----\n" 
                                 + variation.full_description    
@@ -160,83 +190,96 @@ class Test:
                     )
 
                 results.append({
-                    "group": sim_repeat_group,
+                    "data_point": sim_repeat_group,
                     "step_value": stepper_value
                 })
 
             else:
-                results.append(self.run_internal(
+                if run_name_prefix != "":
+                    run_name_prefix += " "
+
+                data_point = self.run_internal(
                     num_sim_repeats, 
                     run_name_prefix = run_name_prefix + 
-                        f"{variation.stepper_name}_{stepper_value} ",
+                        f"{variation.stepper_name}_{stepper_value}",
                     parameter_variations = parameter_variations[1:], 
                     simulation_params = simulation_params, 
                     long_description = long_description + 
                         f"VARYING SCHEME #{depth} ----\n" 
                         + variation.full_description + "\n\n",
                     depth = depth + 1)
-                )
+
+                results.append({
+                    "data_point": data_point,
+                    "step_value": stepper_value
+                })
 
             stepper_value += variation.step_size
             run_count += 1
 
-            if (SHOW_STATUS): 
-                print()
-                print("-- " * (depth - 1) + 
-                    f"Completed: step {run_count} of {num_steps} " + 
-                    f"for scheme level {depth}", end="")
-
-        return results
+        return {
+            "data_set": results,
+            "step_name": variation.stepper_name 
+        }
         
-def run_test(params, name, graph_title, description):
+def run_test(params, name, description):
     neural_net = NETWORK_TO_TEST(params)
     sim_res = train_and_test(neural_net, PATTERN_TO_TEST, params, 
         show_stats = False)
     sim_res.name = name
     sim_res.description = description
-    sim_res.graph_title = graph_title
     return sim_res
 
-def save_output_graphs(results, x_axis_name: str, agg_group_function: callable, 
-        target_dir: str):
+def save_output_graphs(results, agg_group_function: callable, 
+        target_dir: str, full_name: str = ""):
     """
-    Saves a single image of a graph if `results` is a `list` of `dict`s.
-    Otherwise, recursively calls itself to create several images.
+    Saves a single image of a graph if `results` contains the final parameter
+    variation, i.e. the graph.
 
     `agg_group_function` should take as input a list of `SimulationResult`s 
     and return some aggregate statistic (such as max, average, etc.)
     """
-    if type(results[0]) == dict:
+    data_set = results["data_set"]
 
-        x_axis_set = [results[i]["step_value"] for i in range(len(results))]
+    if type(data_set[0]['data_point']) == list:
+        # Then we have reached a group of SimulationResults
 
-        accuracy_set = [agg_group_function(results[i]["group"])
-            for i in range(len(results))]
+        x_axis_set = [data_set[i]["step_value"] 
+            for i in range(len(data_set))]
 
-        # Take the first simulation of several repeats
-        # in the group of repeated simulations
-        # in the first step value of the results
-        graph_title = results[0]["group"][0].graph_title
+        accuracy_set = [agg_group_function(data_set[i]["data_point"])
+            for i in range(len(data_set))]
+
+        file_name = full_name.replace(" = ", "_")
+
+        if full_name != "":
+            full_name = " for " + full_name
+
+        if file_name == "":
+            file_name = "graph"
 
         plt.clf()
         plt.plot(x_axis_set, accuracy_set)
-        plt.title(f"accuracy vs {x_axis_name}")
-        plt.savefig(os.path.join(target_dir, graph_title + ".png"))
+        plt.title(f"accuracy vs {results['step_name']}{full_name}")
+        plt.savefig(os.path.join(target_dir, file_name + ".png"))
 
     else: 
-        for result_set in results:
-            save_output_graphs(result_set, x_axis_name, agg_group_function, 
-                target_dir)
+        # It must be a dict containing another step name and data set
+        if full_name != "":
+            full_name += " "
+        for result_set in data_set:
+            save_output_graphs(result_set["data_point"], agg_group_function, 
+                target_dir, full_name + results["step_name"] + " = " + str(result_set["step_value"]))
 
 def main():
-    demo_test_01()
+    demo_test_03()
     print()
 
 def demo_test_01():
     test = Test([
         ParameterVariationScheme(
             min = 5,
-            max = 20,
+            max = 10,
             step_size = 1,
             changing_parameters = [
                 ChangingParameter("NUM_BANDS")
@@ -256,19 +299,60 @@ def demo_test_01():
         )
     ])
 
-    agg_func = lambda sim_list: \
-        sum([sim.accuracy for sim in sim_list]) / len(sim_list)
+    run_save_test(test, 10)
 
-    test_results = test.run(num_sim_repeats = 25)
+def demo_test_02():
+    test = Test([
+        ParameterVariationScheme(
+            min = 5,
+            max = 44,
+            step_size = 1,
+            changing_parameters = [
+                ChangingParameter("NUM_BANDS")
+            ],
+            stepper_name = "num-of-bands",
+            full_description = "Vary the number of bandwidths (unique items)"
+        )
+    ])
 
+    run_save_test(test, 50)
+
+def demo_test_03():
+    test = Test([
+        ParameterVariationScheme(
+            min = 20,
+            max = 40,
+            step_size = 4,
+            changing_parameters = [
+                ChangingParameter("HIDDEN_DIM")
+            ],
+            stepper_name = "hidden-dim"
+        ),
+        ParameterVariationScheme(
+            min = 5,
+            max = 44,
+            step_size = 1,
+            changing_parameters = [
+                ChangingParameter("NUM_BANDS")
+            ],
+            stepper_name = "num-of-bands",
+            full_description = "Vary the number of bandwidths (unique items)"
+        )
+    ])
+
+    run_save_test(test, 50)
+
+def run_save_test(test: Test, sim_repeats: int):
+    test_results = test.run(num_sim_repeats = sim_repeats)
     save_dir = get_save_dir()
-
-    save_output_graphs(test_results["results"], test_results["x-axis-name"], 
-        agg_func, save_dir)
+    save_output_graphs(test_results, MAX_AGG, save_dir)
 
     # Also save all the results in a pickle for future reference
     with open(os.path.join(save_dir, "all-data.pickle"), 'wb') as file:
         pickle.dump(test_results, file)
+
+    # And create an HTML file for easy viewing
+    save_html(test_results, save_dir)
 
 def get_save_dir():
     if not os.path.exists(OUTPUT_DIR_NAME):

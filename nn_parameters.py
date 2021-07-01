@@ -18,10 +18,10 @@ nn_default_params = {
             "int", 1000),
         Parameter("TEST_LENGTH", "length of the testing sequence", "int", 200),
 
-        Parameter("NUM_LAYERS", "number of layers in RNN", "int", 2),
+        Parameter("NUM_LAYERS", "number of layers in RNN", "int", 1),
         Parameter('HIDDEN_DIM', "dimension of hidden layer in RNN", "int", 20),
         Parameter('SUBSEQ_LEN', "subsequence length for training", "int", 40),
-        Parameter('NUM_EPOCHS', "number of training epochs", "int", 100),
+        Parameter('NUM_EPOCHS', "number of training epochs", "int", 50),
         Parameter('LEARNING_RATE', "learning rate", "float", 0.02),
         Parameter('FORECAST_LOOKBACK', 'number of previous timesteps used ' + 
             'in predictions (-1 for no limit)', "int", -1),

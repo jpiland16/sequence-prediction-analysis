@@ -1,0 +1,57 @@
+<html lang="en-us">
+    <head>
+        <title>Data Summary for Tests</title>
+        <script>
+            image_data = _IMAGE_DATA_
+            DEPTH = _DEPTH_
+            IMAGE_WIDTH = 200
+            ASPECT_RATIO = 4 / 3
+
+            function createDocFromImageData() {
+                let doc = document.getElementById("all")
+                makeImageSection(3 - DEPTH, doc, image_data, "")
+            }
+
+            function makeImageSection(startingDepth, parentElement, data, fullName) {
+                if (startingDepth == 0) {
+                    let div = document.createElement("div")
+                    div.style.width = IMAGE_WIDTH * ASPECT_RATIO * data.data_set.length + "px"
+                    for (let i = 0; i < image_data.data_set.length; i++) {
+                        makeImageSection(startingDepth + 1, div, data.data_set[i].data_point, data.step_name + " = " + data.data_set[i].step_value + ", ")
+                    }
+                    parentElement.appendChild(div)
+                } else if (startingDepth == 1) {
+                    let div = document.createElement("div")
+                    div.style.height = IMAGE_WIDTH * data.data_set.length + "px"
+                    div.style.width = IMAGE_WIDTH * ASPECT_RATIO + "px"
+                    for (let i = 0; i < data.data_set.length; i++) {
+                        makeImageSection(startingDepth + 1, div, data.data_set[i].data_point, fullName + data.step_name + " = " + data.data_set[i].step_value)
+                    }
+                    parentElement.appendChild(div)
+                } else if (startingDepth == 2) {
+                    path = data.data_set
+                    let a = document.createElement("a")
+                    a.href = path
+                    a.target = "_blank"
+
+                    if (fullName != "") fullName = " for " + fullName
+
+                    let image = document.createElement("img")
+                    console.log(path)
+                    image.setAttribute("src", path)
+                    image.style.width = IMAGE_WIDTH * ASPECT_RATIO
+                    image.style.height = IMAGE_WIDTH
+                    image.title = "accuracy vs " + data.step_name + fullName
+
+                    a.appendChild(image)
+
+                    parentElement.appendChild(a)
+                }
+            }
+
+        </script>
+    </head>
+    <body onload="createDocFromImageData()">
+        <div id="all"></div>
+    </body>
+</html>

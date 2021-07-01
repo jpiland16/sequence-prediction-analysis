@@ -38,7 +38,7 @@ class AutoRegressive():
 auto_regressor_func = AutoRegressive()
 
 # Simple transmission patterns
-random = lambda t, N: r.randint(1, N)
+# random = lambda t, N: r.randint(1, N)
 mod_with_noise = lambda t, N: (t % N) + 1 + ((
         (r.randint(0, 1) * 2) - 1 # returns -1 or 1
     ) if t % N == N // 2 else 0)

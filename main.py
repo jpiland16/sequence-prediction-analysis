@@ -30,24 +30,19 @@ USE_DEFAULT_PARAMS = True
 USE_MARKERS = False
 
 class SimulationResults:
-    def __init__(self, params, input, output, accuracy, name: str = "",
+    def __init__(self, input, output, accuracy, name: str = "",
             description: str = ""):
         """
         Holds all the results of a simulation. 
-        `params` is the parameters used for network training and testing.
-        `input` is the sequence used in testing.
         `output` is the neural network's predictions of the next integer
         at each timestep. (The target would be the input shifted back by 
-        one timestep.) Parameters are deep-copied to avoid source changes 
-        affecting the stored parameters.
+        one timestep.) 
         """
-        self.params = copy.deepcopy(params) # because the source is changing
         self.input = input
         self.output = output
         self.accuracy = accuracy
         self.name = name
         self.description = description
-        self.graph_title = ""
 
     def __str__(self):
         return f"<SimulationResults for {self.name}>"
@@ -144,7 +139,7 @@ def train_and_test(neural_net, pattern, params, show_stats = True):
     accuracy = get_percent_correct(test_data[1:], 
         roundify(output, min_v = 1, max_v = params["NUM_BANDS"] ))
 
-    return SimulationResults(params, test_data, output, accuracy)
+    return SimulationResults(test_data, output, accuracy)
 
 def show_attack_success_graph(pattern, params, test_data, output, accuracy):
     # Plot the results
